@@ -18,6 +18,12 @@
 
 #import "MPKitButton.h"
 
+@interface MPKitButton ()
+
+@property (nonatomic, strong) NSFileManager *fileManager;
+
+@end
+
 @implementation MPKitButton
 
 + (NSNumber *)kitCode {
@@ -35,12 +41,16 @@
 
 - (nonnull instancetype)initWithConfiguration:(nonnull NSDictionary *)configuration startImmediately:(BOOL)startImmediately {
     self = [super init];
-    NSString *appKey = configuration[@"appKey"];
-    NSString *appSecret = configuration[@"appSecret"];
-    if (!self || !appKey || !appSecret) {
-        return nil;
-    }
 
+// TODO: Why is this in the example if it's never present?
+//
+//    NSString *appKey = configuration[@"appKey"];
+//    NSString *appSecret = configuration[@"appSecret"];
+//    if (!self || !appKey || !appSecret) {
+//        return nil;
+//    }
+
+    _fileManager = [NSFileManager defaultManager];
     _configuration = configuration;
     _started = startImmediately;
 
@@ -54,4 +64,19 @@
 
     return self;
 }
+
+
+#pragma mark - Button
+
+- (BOOL)isNewInstall {
+    NSString *documentsPath = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES).firstObject;
+    NSDictionary *attributes = [self.fileManager attributesOfItemAtPath:documentsPath error:nil];
+    NSDate *twelveHoursAgo = [[NSCalendar currentCalendar] dateByAddingUnit:NSCalendarUnitHour
+                                                                      value:-12
+                                                                     toDate:[NSDate date]
+                                                                    options:0];
+    
+    return [[attributes fileCreationDate] compare:twelveHoursAgo] == NSOrderedDescending;
+}
+
 @end
