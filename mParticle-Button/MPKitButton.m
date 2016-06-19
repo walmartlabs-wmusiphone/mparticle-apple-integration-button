@@ -18,9 +18,14 @@
 
 #import "MPKitButton.h"
 
+static NSString * const BTNReferrerTokenDefaultsKey = @"com.usebutton.referrer";
+
 @interface MPKitButton ()
 
-@property (nonatomic, strong) NSFileManager *fileManager;
+@property (nonatomic, strong) NSFileManager  *fileManager;
+@property (nonatomic, strong) NSUserDefaults *userDefaults;
+
+@property (nonatomic, copy, readwrite) NSString *buttonReferrerToken;
 
 @end
 
@@ -50,7 +55,9 @@
 //        return nil;
 //    }
 
-    _fileManager = [NSFileManager defaultManager];
+    _fileManager  = [NSFileManager defaultManager];
+    _userDefaults = [NSUserDefaults standardUserDefaults];
+
     _configuration = configuration;
     _started = startImmediately;
 
@@ -62,6 +69,10 @@
                                                           userInfo:userInfo];
     });
 
+    return self;
+}
+
+- (id)providerKitInstance {
     return self;
 }
 
@@ -77,6 +88,19 @@
                                                                     options:0];
     
     return [[attributes fileCreationDate] compare:twelveHoursAgo] == NSOrderedDescending;
+}
+
+- (NSString *)buttonReferrerToken {
+    return [self.userDefaults objectForKey:BTNReferrerTokenDefaultsKey];
+}
+
+- (void)setButtonReferrerToken:(NSString *)buttonReferrerToken {
+    if (buttonReferrerToken) {
+        [self.userDefaults setObject:buttonReferrerToken forKey:BTNReferrerTokenDefaultsKey];
+    }
+    else {
+        [self.userDefaults removeObjectForKey:BTNReferrerTokenDefaultsKey];
+    }
 }
 
 @end

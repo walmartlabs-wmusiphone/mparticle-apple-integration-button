@@ -24,4 +24,7 @@
 @property (nonatomic, strong, nonnull) NSDictionary *configuration;
 @property (nonatomic, unsafe_unretained, readonly) BOOL started;
 
+/// Returns the Button referrer token if present (i.e. btn_ref).
+@property (nonatomic, copy, readonly, nullable) NSString *buttonReferrerToken;
+
 @end
