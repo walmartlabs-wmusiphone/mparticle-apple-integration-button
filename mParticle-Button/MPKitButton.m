@@ -1,7 +1,7 @@
 //
-//  MPKitCompanyName.m
+//  MPKitButton.m
 //
-//  Copyright 2016 mParticle, Inc.
+//  Copyright 2016 Button, Inc.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -16,21 +16,23 @@
 //  limitations under the License.
 //
 
-#import "MPKitCompanyName.h"
-//#import <CompanyName/CompanyName.h>
+#import "MPKitButton.h"
 
-@implementation MPKitCompanyName
+@implementation MPKitButton
 
 + (NSNumber *)kitCode {
-    return @999;
+    return @1022;
 }
 
 + (void)load {
-    MPKitRegister *kitRegister = [[MPKitRegister alloc] initWithName:@"CompanyName" className:@"MPKitCompanyName" startImmediately:YES];
-    [MParticle registerExtension:kitRegister];
+    @autoreleasepool {
+        MPKitRegister *kitRegister = [[MPKitRegister alloc] initWithName:@"Button" className:@"MPKitButton" startImmediately:YES];
+        [MParticle registerExtension:kitRegister];
+    }
 }
 
 #pragma mark MPKitInstanceProtocol methods
+
 - (nonnull instancetype)initWithConfiguration:(nonnull NSDictionary *)configuration startImmediately:(BOOL)startImmediately {
     self = [super init];
     NSString *appKey = configuration[@"appKey"];
@@ -38,14 +40,12 @@
     if (!self || !appKey || !appSecret) {
         return nil;
     }
-    
-//    [CompanyName configureWithAppKey:appKey appSecret:appSecret];
 
     _configuration = configuration;
     _started = startImmediately;
 
     dispatch_async(dispatch_get_main_queue(), ^{
-        NSDictionary *userInfo = @{mParticleKitInstanceKey:[[self class] kitCode]};
+        NSDictionary *userInfo = @{ mParticleKitInstanceKey:[[self class] kitCode] };
 
         [[NSNotificationCenter defaultCenter] postNotificationName:mParticleKitDidBecomeActiveNotification
                                                             object:nil
@@ -54,5 +54,4 @@
 
     return self;
 }
-
 @end

@@ -1,7 +1,7 @@
 //
-//  MPKitCompanyName.h
+//  MPKitButton.h
 //
-//  Copyright 2016 mParticle, Inc.
+//  Copyright 2016 Button, Inc.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@
 #import <Foundation/Foundation.h>
 #import <mParticle_Apple_SDK/mParticle.h>
 
-@interface MPKitCompanyName : NSObject <MPKitProtocol>
+@interface MPKitButton : NSObject <MPKitProtocol>
 
 @property (nonatomic, strong, nonnull) NSDictionary *configuration;
 @property (nonatomic, unsafe_unretained, readonly) BOOL started;
