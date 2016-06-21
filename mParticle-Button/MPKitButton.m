@@ -17,15 +17,27 @@
 //
 
 #import "MPKitButton.h"
+@import AdSupport.ASIdentifierManager;
 
-static NSString * const BTNReferrerTokenDefaultsKey = @"com.usebutton.referrer";
+static NSString * const BTNReferrerTokenDefaultsKey   = @"com.usebutton.referrer";
+static NSString * const BTNLinkFetchStatusDefaultsKey = @"com.usebutton.link.fetched";
+
+NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
 
 @interface MPKitButton ()
 
-@property (nonatomic, strong) NSFileManager  *fileManager;
-@property (nonatomic, strong) NSUserDefaults *userDefaults;
+@property (nonatomic, copy)   NSString       *applicationId;
+@property (nonatomic, strong) NSURLSession   *session;
 
 @property (nonatomic, copy, readwrite) NSString *buttonReferrerToken;
+
+// Dependencies
+@property (nonatomic, strong) NSFileManager  *fileManager;
+@property (nonatomic, strong) NSUserDefaults *userDefaults;
+@property (nonatomic, strong) UIDevice *device;
+@property (nonatomic, strong) UIScreen *screen;
+@property (nonatomic, strong) NSLocale *locale;
+@property (nonatomic, strong) ASIdentifierManager *IFAManager;
 
 @end
 
@@ -37,29 +49,32 @@ static NSString * const BTNReferrerTokenDefaultsKey = @"com.usebutton.referrer";
 
 + (void)load {
     @autoreleasepool {
-        MPKitRegister *kitRegister = [[MPKitRegister alloc] initWithName:@"Button" className:@"MPKitButton" startImmediately:YES];
+        MPKitRegister *kitRegister = [[MPKitRegister alloc] initWithName:@"Button"
+                                                               className:NSStringFromClass(self)
+                                                        startImmediately:YES];
         [MParticle registerExtension:kitRegister];
     }
 }
 
 #pragma mark MPKitInstanceProtocol methods
 
+- (id)providerKitInstance {
+    return self;
+}
+
 - (nonnull instancetype)initWithConfiguration:(nonnull NSDictionary *)configuration startImmediately:(BOOL)startImmediately {
     self = [super init];
 
-// TODO: Why is this in the example if it's never present?
-//
-//    NSString *appKey = configuration[@"appKey"];
-//    NSString *appSecret = configuration[@"appSecret"];
-//    if (!self || !appKey || !appSecret) {
-//        return nil;
-//    }
-
     _fileManager  = [NSFileManager defaultManager];
     _userDefaults = [NSUserDefaults standardUserDefaults];
+    _device       = [UIDevice currentDevice];
+    _screen       = [UIScreen mainScreen];
+    _locale       = [NSLocale currentLocale];
+    _IFAManager   = [ASIdentifierManager sharedManager];
 
     _configuration = configuration;
-    _started = startImmediately;
+    _started       = startImmediately;
+    _applicationId = [configuration[@"application_id"] copy];
 
     dispatch_async(dispatch_get_main_queue(), ^{
         NSDictionary *userInfo = @{ mParticleKitInstanceKey:[[self class] kitCode] };
@@ -72,8 +87,84 @@ static NSString * const BTNReferrerTokenDefaultsKey = @"com.usebutton.referrer";
     return self;
 }
 
-- (id)providerKitInstance {
-    return self;
+- (nonnull MPKitExecStatus *)checkForDeferredDeepLinkWithCompletionHandler:(void(^ _Nonnull)(NSDictionary<NSString *, NSString *> * _Nullable linkInfo, NSError * _Nullable error))completionHandler {
+
+    BOOL isNewInstall = [self isNewInstall];
+    BOOL didFetchLink = [self.userDefaults boolForKey:BTNLinkFetchStatusDefaultsKey];
+
+    if (!isNewInstall || didFetchLink) {
+        return [[MPKitExecStatus alloc] initWithSDKCode:[[self class] kitCode]
+                                             returnCode:MPKitReturnCodeRequirementsNotMet];
+    }
+
+    [self.userDefaults setBool:YES forKey:BTNLinkFetchStatusDefaultsKey];
+
+    if (!self.session) {
+        self.session = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration defaultSessionConfiguration]];
+    }
+
+    NSURL *url = [NSURL URLWithString:@"https://api.usebutton.com/v1/web/deferred-deeplink"];
+    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url];
+    [request addValue:@"applicationi/json" forHTTPHeaderField:@"Content-Type"];
+    [request addValue:@"application/json" forHTTPHeaderField:@"Accept"];
+
+    NSMutableDictionary *signals = [NSMutableDictionary dictionary];
+    signals[@"source"]     = @"mparticle";
+    signals[@"os"]         = [self.device.systemName lowercaseString];
+    signals[@"os_version"] = self.device.systemVersion;
+    signals[@"device"]     = self.device.model;
+    signals[@"country"]    = [self.locale objectForKey:NSLocaleCountryCode];
+    signals[@"language"]   = [[[self.locale class] preferredLanguages].firstObject
+                              componentsSeparatedByString:@"-"].firstObject ?: @"en";
+    signals[@"screen"]     = [NSString stringWithFormat:@"%@x%@",
+                              @(self.screen.bounds.size.width * self.screen.scale),
+                              @(self.screen.bounds.size.height * self.screen.scale)];
+
+    NSMutableDictionary *params = [NSMutableDictionary dictionary];
+    params[@"application_id"] = self.applicationId ?: @"";
+    params[@"ifa"]            = self.IFAManager.advertisingIdentifier.UUIDString;
+    params[@"signals"]        = signals;
+
+    NSError *error;
+    NSData *requestData = [NSJSONSerialization dataWithJSONObject:[params copy] options:0 error:&error];
+    if (!requestData && error) {
+        return [[MPKitExecStatus alloc] initWithSDKCode:[[self class] kitCode]
+                                             returnCode:MPKitReturnCodeFail];
+    }
+
+    request.HTTPBody = requestData;
+    [[self.session dataTaskWithRequest:request completionHandler:
+      ^(NSData * _Nullable data, NSURLResponse * _Nullable response, NSError * _Nullable error) {
+
+          NSDictionary *linkInfo;
+          if (!error) {
+              id responseObject    = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
+              BOOL isValidResponse = [responseObject isKindOfClass:[NSDictionary class]] &&
+                                     [responseObject[@"meta"] isKindOfClass:[NSDictionary class]] &&
+                                     [responseObject[@"meta"][@"status"] isEqualToString:@"ok"] &&
+                                     [responseObject[@"object"] isKindOfClass:[NSDictionary class]];
+
+              NSDictionary *object = responseObject[@"object"];
+              if ([object[@"attribution"] isKindOfClass:[NSDictionary class]]) {
+                  NSString *referrer = object[@"attribution"][@"btn_ref"];
+                  self.buttonReferrerToken = referrer.length ? referrer : self.buttonReferrerToken;
+              }
+
+              if ([object[@"action"] length]) {
+                  linkInfo = @{ BTNDeferredDeepLinkURLKey: object[@"action"] };
+              }
+          }
+
+          if (completionHandler) {
+              dispatch_async(dispatch_get_main_queue(), ^{
+                  completionHandler(linkInfo, nil);
+              });
+          }
+
+    }] resume];
+
+    return [[MPKitExecStatus alloc] initWithSDKCode:[[self class] kitCode]
+                                         returnCode:MPKitReturnCodeSuccess];
 }
 
 
