@@ -47,6 +47,7 @@ NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
     return @1022;
 }
 
+
 + (void)load {
     @autoreleasepool {
         MPKitRegister *kitRegister = [[MPKitRegister alloc] initWithName:@"Button"
@@ -56,11 +57,13 @@ NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
     }
 }
 
+
 #pragma mark MPKitInstanceProtocol methods
 
 - (id)providerKitInstance {
     return self;
 }
+
 
 - (nonnull instancetype)initWithConfiguration:(nonnull NSDictionary *)configuration startImmediately:(BOOL)startImmediately {
     self = [super init];
@@ -86,6 +89,7 @@ NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
 
     return self;
 }
+
 
 - (nonnull MPKitExecStatus *)checkForDeferredDeepLinkWithCompletionHandler:(void(^ _Nonnull)(NSDictionary<NSString *, NSString *> * _Nullable linkInfo, NSError * _Nullable error))completionHandler {
 
@@ -168,6 +172,27 @@ NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
 }
 
 
+- (nonnull MPKitExecStatus *)openURL:(nonnull NSURL *)url options:(nullable NSDictionary<NSString *, id> *)options {
+    [self applyAttributionFromURL:url];
+    return [[MPKitExecStatus alloc] initWithSDKCode:[[self class] kitCode]
+                                         returnCode:MPKitReturnCodeSuccess];
+}
+
+
+- (nonnull MPKitExecStatus *)openURL:(nonnull NSURL *)url sourceApplication:(nullable NSString *)sourceApplication annotation:(nullable id)annotation {
+    [self applyAttributionFromURL:url];
+    return [[MPKitExecStatus alloc] initWithSDKCode:[[self class] kitCode]
+                                         returnCode:MPKitReturnCodeSuccess];
+}
+
+
+- (nonnull MPKitExecStatus *)continueUserActivity:(nonnull NSUserActivity *)userActivity restorationHandler:(void(^ _Nonnull)(NSArray * _Nullable restorableObjects))restorationHandler {
+    [self applyAttributionFromURL:userActivity.webpageURL];
+    return [[MPKitExecStatus alloc] initWithSDKCode:[[self class] kitCode]
+                                         returnCode:MPKitReturnCodeSuccess];
+}
+
+
 #pragma mark - Button
 
 - (BOOL)isNewInstall {
@@ -181,9 +206,11 @@ NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
     return [[attributes fileCreationDate] compare:twelveHoursAgo] == NSOrderedDescending;
 }
 
+
 - (NSString *)buttonReferrerToken {
     return [self.userDefaults objectForKey:BTNReferrerTokenDefaultsKey];
 }
+
 
 - (void)setButtonReferrerToken:(NSString *)buttonReferrerToken {
     if (buttonReferrerToken) {
@@ -191,6 +218,22 @@ NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
     }
     else {
         [self.userDefaults removeObjectForKey:BTNReferrerTokenDefaultsKey];
+    }
+}
+
+
+- (void)applyAttributionFromURL:(NSURL *)url {
+    Class queryItemClass = NSClassFromString(@"NSURLQueryItem");
+    if (queryItemClass) {
+        NSURLComponents *urlComponents = [NSURLComponents componentsWithString:url.absoluteString];
+
+        for (NSURLQueryItem *item in urlComponents.queryItems) {
+
+            if ([item.name isEqualToString:@"btn_ref"] && item.value.length) {
+                self.buttonReferrerToken = item.value;
+                break;
+            }
+        }
     }
 }
 
