@@ -17,7 +17,11 @@
 //
 
 #import "MPKitButton.h"
+#include <sys/types.h>
+#include <sys/sysctl.h>
 @import AdSupport.ASIdentifierManager;
+
+static NSString * const BTNMPKitVersion = @"1.0.0";
 
 static NSString * const BTNReferrerTokenDefaultsKey   = @"com.usebutton.referrer";
 static NSString * const BTNLinkFetchStatusDefaultsKey = @"com.usebutton.link.fetched";
@@ -26,9 +30,8 @@ NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
 
 @interface MPKitButton ()
 
-@property (nonatomic, copy)   NSString       *applicationId;
-@property (nonatomic, strong) NSURLSession   *session;
-
+@property (nonatomic, copy)   NSString *applicationId;
+@property (nonatomic, strong) NSURLSession *session;
 @property (nonatomic, copy, readwrite) NSString *buttonReferrerToken;
 
 // Dependencies
@@ -37,6 +40,7 @@ NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
 @property (nonatomic, strong) UIDevice *device;
 @property (nonatomic, strong) UIScreen *screen;
 @property (nonatomic, strong) NSLocale *locale;
+@property (nonatomic, strong) NSBundle *mainBundle;
 @property (nonatomic, strong) ASIdentifierManager *IFAManager;
 
 @end
@@ -73,6 +77,7 @@ NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
     _device       = [UIDevice currentDevice];
     _screen       = [UIScreen mainScreen];
     _locale       = [NSLocale currentLocale];
+    _mainBundle   = [NSBundle mainBundle];
     _IFAManager   = [ASIdentifierManager sharedManager];
 
     _configuration = configuration;
@@ -111,22 +116,22 @@ NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
     NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url];
     [request addValue:@"applicationi/json" forHTTPHeaderField:@"Content-Type"];
     [request addValue:@"application/json" forHTTPHeaderField:@"Accept"];
+    [request addValue:[self userAgentString] forHTTPHeaderField:@"User-Agent"];
 
     NSMutableDictionary *signals = [NSMutableDictionary dictionary];
     signals[@"source"]     = @"mparticle";
-    signals[@"os"]         = [self.device.systemName lowercaseString];
-    signals[@"os_version"] = self.device.systemVersion;
-    signals[@"device"]     = self.device.model;
-    signals[@"country"]    = [self.locale objectForKey:NSLocaleCountryCode];
-    signals[@"language"]   = [[[self.locale class] preferredLanguages].firstObject
-                              componentsSeparatedByString:@"-"].firstObject ?: @"en";
+    signals[@"os"]         = [self.device.systemName lowercaseString] ?: @"";
+    signals[@"os_version"] = self.device.systemVersion ?: @"";
+    signals[@"device"]     = self.device.model ?: @"";
+    signals[@"country"]    = [self.locale objectForKey:NSLocaleCountryCode] ?: @"";
+    signals[@"language"]   = [self preferredLanguage] ?: @"";
     signals[@"screen"]     = [NSString stringWithFormat:@"%@x%@",
                               @(self.screen.bounds.size.width * self.screen.scale),
                               @(self.screen.bounds.size.height * self.screen.scale)];
 
     NSMutableDictionary *params = [NSMutableDictionary dictionary];
     params[@"application_id"] = self.applicationId ?: @"";
-    params[@"ifa"]            = self.IFAManager.advertisingIdentifier.UUIDString;
+    params[@"ifa"]            = self.IFAManager.advertisingIdentifier.UUIDString ?: @"";
     params[@"signals"]        = signals;
 
     NSError *error;
@@ -235,6 +240,38 @@ NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
             }
         }
     }
+}
+
+
+- (NSString *)userAgentString {
+    return [NSString stringWithFormat:@"%@/%@-%@ (iOS %@; %@; %@/%@; Scale/%0.1f; %@-%@)",
+            @"com.usebutton.mparticle",
+            [MParticle sharedInstance].version,
+            BTNMPKitVersion,
+            self.device.systemVersion,
+            [self platformString],
+            self.mainBundle.infoDictionary[(__bridge NSString *)kCFBundleIdentifierKey],
+            self.mainBundle.infoDictionary[(__bridge NSString *)kCFBundleVersionKey],
+            self.screen.scale,
+            [self preferredLanguage],
+            [self.locale objectForKey:NSLocaleCountryCode]];
+}
+
+
+- (NSString *)preferredLanguage {
+    return [[[self.locale class] preferredLanguages].firstObject
+            componentsSeparatedByString:@"-"].firstObject ?: @"en";
+}
+
+
+- (NSString *)platformString {
+    size_t size;
+    sysctlbyname("hw.machine", NULL, &size, NULL, 0);
+    char *machine = malloc(size);
+    sysctlbyname("hw.machine", machine, &size, NULL, 0);
+    NSString *platform = @(machine);
+    free(machine);
+    return platform;
 }
 
 @end
