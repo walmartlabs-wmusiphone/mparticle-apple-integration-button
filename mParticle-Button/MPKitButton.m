@@ -85,7 +85,7 @@ NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
     _applicationId = [configuration[@"application_id"] copy];
 
     dispatch_async(dispatch_get_main_queue(), ^{
-        NSDictionary *userInfo = @{ mParticleKitInstanceKey:[[self class] kitCode] };
+        NSDictionary *userInfo = @{ mParticleKitInstanceKey: [[self class] kitCode] };
 
         [[NSNotificationCenter defaultCenter] postNotificationName:mParticleKitDidBecomeActiveNotification
                                                             object:nil
@@ -101,7 +101,7 @@ NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
     BOOL isNewInstall = [self isNewInstall];
     BOOL didFetchLink = [self.userDefaults boolForKey:BTNLinkFetchStatusDefaultsKey];
 
-    if (!isNewInstall || didFetchLink) {
+    if (!isNewInstall || didFetchLink || !self.applicationId.length) {
         return [[MPKitExecStatus alloc] initWithSDKCode:[[self class] kitCode]
                                              returnCode:MPKitReturnCodeRequirementsNotMet];
     }
@@ -114,13 +114,14 @@ NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
 
     NSURL *url = [NSURL URLWithString:@"https://api.usebutton.com/v1/web/deferred-deeplink"];
     NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url];
-    [request addValue:@"applicationi/json" forHTTPHeaderField:@"Content-Type"];
+    request.HTTPMethod = @"POST";
+    [request addValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
     [request addValue:@"application/json" forHTTPHeaderField:@"Accept"];
     [request addValue:[self userAgentString] forHTTPHeaderField:@"User-Agent"];
 
     NSMutableDictionary *signals = [NSMutableDictionary dictionary];
     signals[@"source"]     = @"mparticle";
-    signals[@"os"]         = [self.device.systemName lowercaseString] ?: @"";
+    signals[@"os"]         = @"ios";
     signals[@"os_version"] = self.device.systemVersion ?: @"";
     signals[@"device"]     = self.device.model ?: @"";
     signals[@"country"]    = [self.locale objectForKey:NSLocaleCountryCode] ?: @"";
