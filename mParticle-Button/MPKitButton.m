@@ -49,7 +49,7 @@ NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
 }
 
 
-- (void)setButtonReferrerToken:(NSString *)buttonReferrerToken {
+- (void)setReferrerToken:(NSString *)buttonReferrerToken {
     if (buttonReferrerToken) {
         [self.userDefaults setObject:buttonReferrerToken forKey:BTNReferrerTokenDefaultsKey];
     }
