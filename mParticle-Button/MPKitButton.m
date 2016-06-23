@@ -53,24 +53,22 @@ NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
 
 
 + (void)load {
-    @autoreleasepool {
-        MPKitRegister *kitRegister = [[MPKitRegister alloc] initWithName:@"Button"
-                                                               className:NSStringFromClass(self)
-                                                        startImmediately:YES];
-        [MParticle registerExtension:kitRegister];
-    }
+    MPKitRegister *kitRegister = [[MPKitRegister alloc] initWithName:@"Button"
+                                                           className:NSStringFromClass(self)
+                                                    startImmediately:YES];
+    [MParticle registerExtension:kitRegister];
 }
 
 
 #pragma mark MPKitInstanceProtocol methods
 
-- (id)providerKitInstance {
-    return self;
-}
-
-
 - (nonnull instancetype)initWithConfiguration:(nonnull NSDictionary *)configuration startImmediately:(BOOL)startImmediately {
     self = [super init];
+
+    _applicationId = [configuration[@"application_id"] copy];
+    if (!self || !_applicationId) {
+        return nil;
+    }
 
     _fileManager  = [NSFileManager defaultManager];
     _userDefaults = [NSUserDefaults standardUserDefaults];
@@ -82,7 +80,6 @@ NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
 
     _configuration = configuration;
     _started       = startImmediately;
-    _applicationId = [configuration[@"application_id"] copy];
 
     dispatch_async(dispatch_get_main_queue(), ^{
         NSDictionary *userInfo = @{ mParticleKitInstanceKey: [[self class] kitCode] };
@@ -135,9 +132,15 @@ NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
     params[@"ifa"]            = self.IFAManager.advertisingIdentifier.UUIDString ?: @"";
     params[@"signals"]        = signals;
 
-    NSError *error;
-    NSData *requestData = [NSJSONSerialization dataWithJSONObject:[params copy] options:0 error:&error];
-    if (!requestData && error) {
+    NSError *error = nil;
+    NSData *requestData = nil;
+
+    @try {
+        requestData = [NSJSONSerialization dataWithJSONObject:[params copy] options:0 error:&error];
+    } @catch (NSException *exception) {
+    }
+
+    if (!requestData || error) {
         return [[MPKitExecStatus alloc] initWithSDKCode:[[self class] kitCode]
                                              returnCode:MPKitReturnCodeFail];
     }
@@ -208,7 +211,7 @@ NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
                                                                       value:-12
                                                                      toDate:[NSDate date]
                                                                     options:0];
-    
+
     return [[attributes fileCreationDate] compare:twelveHoursAgo] == NSOrderedDescending;
 }
 
