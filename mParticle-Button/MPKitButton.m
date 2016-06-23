@@ -32,7 +32,6 @@ NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
 
 @property (nonatomic, copy)   NSString *applicationId;
 @property (nonatomic, strong) NSURLSession *session;
-@property (nonatomic, copy, readwrite) NSString *buttonReferrerToken;
 
 // Dependencies
 @property (nonatomic, strong) NSFileManager  *fileManager;
@@ -42,6 +41,42 @@ NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
 @property (nonatomic, strong) NSLocale *locale;
 @property (nonatomic, strong) NSBundle *mainBundle;
 @property (nonatomic, strong) ASIdentifierManager *IFAManager;
+
+@end
+
+#pragma mark - MPIButton
+@interface MPIButton()
+
+@property (nonatomic, copy, nullable) NSString *referrerToken;
+
+@end
+
+@implementation MPIButton
+
+- (NSString *)referrerToken {
+    NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
+    return [userDefaults objectForKey:BTNReferrerTokenDefaultsKey];
+}
+
+
+- (void)setButtonReferrerToken:(NSString *)buttonReferrerToken {
+    NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
+    
+    if (buttonReferrerToken) {
+        [userDefaults setObject:buttonReferrerToken forKey:BTNReferrerTokenDefaultsKey];
+    }
+    else {
+        [userDefaults removeObjectForKey:BTNReferrerTokenDefaultsKey];
+    }
+}
+
+@end
+
+
+#pragma mark - MPKitButton
+@interface MPKitButton()
+
+@property (nonatomic, strong, nonnull) MPIButton *button;
 
 @end
 
@@ -92,6 +127,9 @@ NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
     return self;
 }
 
+- (id)providerKitInstance {
+    return [self started] ? self.button : nil;
+}
 
 - (nonnull MPKitExecStatus *)checkForDeferredDeepLinkWithCompletionHandler:(void(^ _Nonnull)(NSDictionary<NSString *, NSString *> * _Nullable linkInfo, NSError * _Nullable error))completionHandler {
 
@@ -140,7 +178,7 @@ NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
     } @catch (NSException *exception) {
     }
 
-    if (!requestData || error) {
+    if (!requestData && error) {
         return [[MPKitExecStatus alloc] initWithSDKCode:[[self class] kitCode]
                                              returnCode:MPKitReturnCodeFail];
     }
@@ -160,7 +198,10 @@ NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
               NSDictionary *object = responseObject[@"object"];
               if ([object[@"attribution"] isKindOfClass:[NSDictionary class]]) {
                   NSString *referrer = object[@"attribution"][@"btn_ref"];
-                  self.buttonReferrerToken = referrer.length ? referrer : self.buttonReferrerToken;
+                  
+                  if (referrer.length) {
+                      self.button.referrerToken = referrer;
+                  }
               }
 
               if ([object[@"action"] length]) {
@@ -202,7 +243,15 @@ NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
 }
 
 
-#pragma mark - Button
+#pragma mark - Button specific
+
+- (MPIButton *)button {
+    if (_button) {
+        _button = [[MPIButton alloc] init];
+    }
+    
+    return _button;
+}
 
 - (BOOL)isNewInstall {
     NSString *documentsPath = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES).firstObject;
@@ -216,21 +265,6 @@ NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
 }
 
 
-- (NSString *)buttonReferrerToken {
-    return [self.userDefaults objectForKey:BTNReferrerTokenDefaultsKey];
-}
-
-
-- (void)setButtonReferrerToken:(NSString *)buttonReferrerToken {
-    if (buttonReferrerToken) {
-        [self.userDefaults setObject:buttonReferrerToken forKey:BTNReferrerTokenDefaultsKey];
-    }
-    else {
-        [self.userDefaults removeObjectForKey:BTNReferrerTokenDefaultsKey];
-    }
-}
-
-
 - (void)applyAttributionFromURL:(NSURL *)url {
     Class queryItemClass = NSClassFromString(@"NSURLQueryItem");
     if (queryItemClass) {
@@ -239,7 +273,7 @@ NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
         for (NSURLQueryItem *item in urlComponents.queryItems) {
 
             if ([item.name isEqualToString:@"btn_ref"] && item.value.length) {
-                self.buttonReferrerToken = item.value;
+                self.button.referrerToken = item.value;
                 break;
             }
         }
