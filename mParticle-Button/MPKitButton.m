@@ -28,8 +28,43 @@ static NSString * const BTNLinkFetchStatusDefaultsKey = @"com.usebutton.link.fet
 
 NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
 
+#pragma mark - MPIButton
+@interface MPIButton()
+
+@property (nonatomic, copy, nullable) NSString *referrerToken;
+@property (nonatomic, strong) NSUserDefaults *userDefaults;
+
+@end
+
+@implementation MPIButton
+
+- (instancetype)init {
+    self = [super init];
+    _userDefaults = [NSUserDefaults standardUserDefaults];
+    return self;
+}
+
+- (NSString *)referrerToken {
+    return [self.userDefaults objectForKey:BTNReferrerTokenDefaultsKey];
+}
+
+
+- (void)setButtonReferrerToken:(NSString *)buttonReferrerToken {
+    if (buttonReferrerToken) {
+        [self.userDefaults setObject:buttonReferrerToken forKey:BTNReferrerTokenDefaultsKey];
+    }
+    else {
+        [self.userDefaults removeObjectForKey:BTNReferrerTokenDefaultsKey];
+    }
+}
+
+@end
+
+
+#pragma mark - MPKitButton
 @interface MPKitButton ()
 
+@property (nonatomic, strong, nonnull) MPIButton *button;
 @property (nonatomic, copy)   NSString *applicationId;
 @property (nonatomic, strong) NSURLSession *session;
 
@@ -44,41 +79,6 @@ NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
 
 @end
 
-#pragma mark - MPIButton
-@interface MPIButton()
-
-@property (nonatomic, copy, nullable) NSString *referrerToken;
-
-@end
-
-@implementation MPIButton
-
-- (NSString *)referrerToken {
-    NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
-    return [userDefaults objectForKey:BTNReferrerTokenDefaultsKey];
-}
-
-
-- (void)setButtonReferrerToken:(NSString *)buttonReferrerToken {
-    NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
-    
-    if (buttonReferrerToken) {
-        [userDefaults setObject:buttonReferrerToken forKey:BTNReferrerTokenDefaultsKey];
-    }
-    else {
-        [userDefaults removeObjectForKey:BTNReferrerTokenDefaultsKey];
-    }
-}
-
-@end
-
-
-#pragma mark - MPKitButton
-@interface MPKitButton()
-
-@property (nonatomic, strong, nonnull) MPIButton *button;
-
-@end
 
 @implementation MPKitButton
 
@@ -246,7 +246,7 @@ NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
 #pragma mark - Button specific
 
 - (MPIButton *)button {
-    if (_button) {
+    if (!_button) {
         _button = [[MPIButton alloc] init];
     }
     
