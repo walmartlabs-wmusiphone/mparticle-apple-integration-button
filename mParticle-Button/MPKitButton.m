@@ -188,7 +188,7 @@ NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
     [[self.session dataTaskWithRequest:request completionHandler:
       ^(NSData * _Nullable data, NSURLResponse * _Nullable response, NSError * _Nullable error) {
 
-          NSDictionary *linkInfo;
+          NSDictionary *linkInfo = nil;
           if (!error) {
               id responseObject    = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
               BOOL isValidResponse = [responseObject isKindOfClass:[NSDictionary class]] &&
@@ -196,17 +196,19 @@ NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
                                      [responseObject[@"meta"][@"status"] isEqualToString:@"ok"] &&
                                      [responseObject[@"object"] isKindOfClass:[NSDictionary class]];
 
-              NSDictionary *object = responseObject[@"object"];
-              if ([object[@"attribution"] isKindOfClass:[NSDictionary class]]) {
-                  NSString *referrer = object[@"attribution"][@"btn_ref"];
+              if (isValidResponse) {
+                  NSDictionary *object = responseObject[@"object"];
+                  if ([object[@"attribution"] isKindOfClass:[NSDictionary class]]) {
+                      NSString *referrer = object[@"attribution"][@"btn_ref"];
 
-                  if (referrer.length) {
-                      self.button.referrerToken = referrer;
+                      if (referrer.length) {
+                          self.button.referrerToken = referrer;
+                      }
                   }
-              }
 
-              if ([object[@"action"] length]) {
-                  linkInfo = @{ BTNDeferredDeepLinkURLKey: object[@"action"] };
+                  if ([object[@"action"] length]) {
+                      linkInfo = @{ BTNDeferredDeepLinkURLKey: object[@"action"] };
+                  }
               }
           }
 
@@ -215,7 +217,6 @@ NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
                   completionHandler(linkInfo, nil);
               });
           }
-
     }] resume];
 
     return [[MPKitExecStatus alloc] initWithSDKCode:[[self class] kitCode]
