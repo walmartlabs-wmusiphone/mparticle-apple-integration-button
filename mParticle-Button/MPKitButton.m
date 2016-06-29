@@ -19,6 +19,7 @@
 #import "MPKitButton.h"
 #include <sys/types.h>
 #include <sys/sysctl.h>
+#import "mParticle.h"
 @import AdSupport.ASIdentifierManager;
 
 static NSString * const BTNMPKitVersion = @"1.0.0";
@@ -198,7 +199,7 @@ NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
               NSDictionary *object = responseObject[@"object"];
               if ([object[@"attribution"] isKindOfClass:[NSDictionary class]]) {
                   NSString *referrer = object[@"attribution"][@"btn_ref"];
-                  
+
                   if (referrer.length) {
                       self.button.referrerToken = referrer;
                   }
@@ -249,7 +250,7 @@ NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
     if (!_button) {
         _button = [[MPIButton alloc] init];
     }
-    
+
     return _button;
 }
 

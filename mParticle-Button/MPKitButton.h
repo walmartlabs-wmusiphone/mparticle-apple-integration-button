@@ -17,7 +17,8 @@
 //
 
 #import <Foundation/Foundation.h>
-#import <mParticle_Apple_SDK/mParticle.h>
+#import "MPKitExecStatus.h"
+#import "MPKitProtocol.h"
 
 /// A key into the linkInfo passed the -checkForDeferredDeepLinkWithCompletionHandler: handler.
 extern NSString * _Nonnull const BTNDeferredDeepLinkURLKey;
