@@ -19,7 +19,7 @@
 #import "MPKitButton.h"
 #include <sys/types.h>
 #include <sys/sysctl.h>
-#import "mParticle.h"
+
 @import AdSupport.ASIdentifierManager;
 
 static NSString * const BTNMPKitVersion = @"1.0.0";
