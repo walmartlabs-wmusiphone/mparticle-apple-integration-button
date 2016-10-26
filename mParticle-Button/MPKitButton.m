@@ -132,7 +132,7 @@ NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
     return [self started] ? self.button : nil;
 }
 
-- (nonnull MPKitExecStatus *)checkForDeferredDeepLinkWithCompletionHandler:(void(^ _Nonnull)(NSDictionary<NSString *, NSString *> * _Nullable linkInfo, NSError * _Nullable error))completionHandler {
+- (nonnull MPKitExecStatus *)checkForDeferredDeepLinkWithCompletionHandler:(void(^ _Nonnull)(NSDictionary * _Nullable linkInfo, NSError * _Nullable error))completionHandler {
 
     BOOL isNewInstall = [self isNewInstall];
     BOOL didFetchLink = [self.userDefaults boolForKey:BTNLinkFetchStatusDefaultsKey];
