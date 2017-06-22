@@ -1,1 +1,1 @@
-github "mparticle/mparticle-apple-sdk" ~> 6.13.0
+github "walmartlabs-wmusiphone/mparticle-apple-sdk" "qadeployment"
