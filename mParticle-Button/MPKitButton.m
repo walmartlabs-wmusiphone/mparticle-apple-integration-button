@@ -27,7 +27,9 @@ static NSString * const BTNMPKitVersion = @"1.0.0";
 static NSString * const BTNReferrerTokenDefaultsKey   = @"com.usebutton.referrer";
 static NSString * const BTNLinkFetchStatusDefaultsKey = @"com.usebutton.link.fetched";
 
+NSString * const MPKitButtonAttributionResultKey = @"mParticle-Button Attribution Result";
 NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
+
 
 #pragma mark - MPIButton
 @interface MPIButton()
@@ -207,7 +209,7 @@ NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
                   }
 
                   if ([object[@"action"] length]) {
-                      linkInfo = @{ BTNDeferredDeepLinkURLKey: object[@"action"] };
+                      linkInfo = @{ BTNDeferredDeepLinkURLKey: object[@"action"], MPKitButtonAttributionResultKey: object[@"action"] };
                   }
               }
           }
