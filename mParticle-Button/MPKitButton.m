@@ -92,20 +92,20 @@ NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
 
 + (void)load {
     MPKitRegister *kitRegister = [[MPKitRegister alloc] initWithName:@"Button"
-                                                           className:NSStringFromClass(self)
-                                                    startImmediately:YES];
+                                                           className:NSStringFromClass(self)];
     [MParticle registerExtension:kitRegister];
 }
 
 
 #pragma mark MPKitInstanceProtocol methods
 
-- (nonnull instancetype)initWithConfiguration:(nonnull NSDictionary *)configuration startImmediately:(BOOL)startImmediately {
-    self = [super init];
+- (MPKitExecStatus *)didFinishLaunchingWithConfiguration:(NSDictionary *)configuration {
+    MPKitExecStatus *execStatus = nil;
 
     _applicationId = [configuration[@"application_id"] copy];
-    if (!self || !_applicationId) {
-        return nil;
+    if (!_applicationId) {
+        execStatus = [[MPKitExecStatus alloc] initWithSDKCode:[[self class] kitCode] returnCode:MPKitReturnCodeRequirementsNotMet];
+        return execStatus;
     }
 
     _fileManager  = [NSFileManager defaultManager];
@@ -117,7 +117,7 @@ NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
     _IFAManager   = [ASIdentifierManager sharedManager];
 
     _configuration = configuration;
-    _started       = startImmediately;
+    _started       = YES;
 
     dispatch_async(dispatch_get_main_queue(), ^{
         NSDictionary *userInfo = @{ mParticleKitInstanceKey: [[self class] kitCode] };
@@ -127,7 +127,8 @@ NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
                                                           userInfo:userInfo];
     });
 
-    return self;
+    execStatus = [[MPKitExecStatus alloc] initWithSDKCode:[[self class] kitCode] returnCode:MPKitReturnCodeSuccess];
+    return execStatus;
 }
 
 - (id)providerKitInstance {
