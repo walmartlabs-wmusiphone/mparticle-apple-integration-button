@@ -30,6 +30,9 @@ static NSString * const BTNLinkFetchStatusDefaultsKey = @"com.usebutton.link.fet
 NSString * const MPKitButtonAttributionResultKey = @"mParticle-Button Attribution Result";
 NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
 
+NSString * const MPKitButtonErrorDomain = @"com.mparticle.kits.button";
+NSString * const MPKitButtonErrorMessageKey = @"mParticle-Button Error";
+
 
 #pragma mark - MPIButton
 @interface MPIButton()
@@ -85,6 +88,8 @@ NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
 
 @implementation MPKitButton
 
+@synthesize kitApi = _kitApi;
+
 + (NSNumber *)kitCode {
     return @1022;
 }
@@ -135,14 +140,19 @@ NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
     return [self started] ? self.button : nil;
 }
 
-- (nonnull MPKitExecStatus *)checkForDeferredDeepLinkWithCompletionHandler:(void(^ _Nonnull)(NSDictionary * _Nullable linkInfo, NSError * _Nullable error))completionHandler {
+- (NSError *)errorWithMessage:(NSString *)message {
+    NSError *error = [NSError errorWithDomain:MPKitButtonErrorDomain code:0 userInfo:@{MPKitButtonErrorMessageKey: message}];
+    return error;
+}
 
+- (void)checkForDeeplink {
     BOOL isNewInstall = [self isNewInstall];
     BOOL didFetchLink = [self.userDefaults boolForKey:BTNLinkFetchStatusDefaultsKey];
 
     if (!isNewInstall || didFetchLink || !self.applicationId.length) {
-        return [[MPKitExecStatus alloc] initWithSDKCode:[[self class] kitCode]
-                                             returnCode:MPKitReturnCodeRequirementsNotMet];
+        NSError *error = [self errorWithMessage:@"Requirements not met"];
+        [_kitApi onDeeplinkCompleteWithInfo:nil error:error];
+        return;
     }
 
     [self.userDefaults setBool:YES forKey:BTNLinkFetchStatusDefaultsKey];
@@ -183,8 +193,9 @@ NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
     }
 
     if (!requestData && error) {
-        return [[MPKitExecStatus alloc] initWithSDKCode:[[self class] kitCode]
-                                             returnCode:MPKitReturnCodeFail];
+        NSError *error = [self errorWithMessage:[NSString stringWithFormat:@"JSON serialization of request data failed: %@", error]];
+        [_kitApi onDeeplinkCompleteWithInfo:nil error:error];
+        return;
     }
 
     request.HTTPBody = requestData;
@@ -211,19 +222,26 @@ NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
 
                   if ([object[@"action"] length]) {
                       linkInfo = @{ BTNDeferredDeepLinkURLKey: object[@"action"], MPKitButtonAttributionResultKey: object[@"action"] };
+                      [_kitApi onDeeplinkCompleteWithInfo:linkInfo error:nil];
                   }
+                  else {
+                      NSError *deeplinkError = [self errorWithMessage:@"Response dictionary value for key 'action' was empty or missing"];
+                      [_kitApi onDeeplinkCompleteWithInfo:nil error:deeplinkError];
+                      return;
+                  }
+              } else {
+                  NSError *deeplinkError = [self errorWithMessage:@"Not a valid response"];
+                  [_kitApi onDeeplinkCompleteWithInfo:nil error:deeplinkError];
+                  return;
               }
+              
+          } else {
+              NSError *deeplinkError = [self errorWithMessage:[NSString stringWithFormat:@"Data task failed with error: %@", error]];
+              [_kitApi onDeeplinkCompleteWithInfo:nil error:deeplinkError];
+              return;
           }
-
-          if (completionHandler) {
-              dispatch_async(dispatch_get_main_queue(), ^{
-                  completionHandler(linkInfo, nil);
-              });
-          }
+          
     }] resume];
-
-    return [[MPKitExecStatus alloc] initWithSDKCode:[[self class] kitCode]
-                                         returnCode:MPKitReturnCodeSuccess];
 }
 
 
@@ -283,6 +301,7 @@ NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
             }
         }
     }
+    [self checkForDeeplink];
 }
 
 
