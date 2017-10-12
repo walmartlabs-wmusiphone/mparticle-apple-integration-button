@@ -27,12 +27,12 @@
 extern NSString * _Nonnull const MPKitButtonErrorDomain;
 extern NSString * _Nonnull const MPKitButtonErrorMessageKey;
 
-/// A key into the linkInfo passed to the onDeeplinkComplete handler.
+/// A key into the linkInfo passed to the onAttributionComplete handler.
 /// (Note: This key will be set to the same value as `BTNDeferredDeepLinkURLKey`.
 ///        We added it later to match the naming convention used by other kits.)
 extern NSString * _Nonnull const MPKitButtonAttributionResultKey;
 
-/// A key into the linkInfo passed to the onDeeplinkComplete handler.
+/// A key into the linkInfo passed to the onAttributionComplete handler.
 extern NSString * _Nonnull const BTNDeferredDeepLinkURLKey;
 
 #pragma mark - MPIButton

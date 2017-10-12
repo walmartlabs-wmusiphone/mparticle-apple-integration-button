@@ -145,13 +145,13 @@ NSString * const MPKitButtonErrorMessageKey = @"mParticle-Button Error";
     return error;
 }
 
-- (void)checkForDeeplink {
+- (void)checkForAttribution {
     BOOL isNewInstall = [self isNewInstall];
     BOOL didFetchLink = [self.userDefaults boolForKey:BTNLinkFetchStatusDefaultsKey];
 
     if (!isNewInstall || didFetchLink || !self.applicationId.length) {
         NSError *error = [self errorWithMessage:@"Requirements not met"];
-        [_kitApi onDeeplinkCompleteWithInfo:nil error:error];
+        [_kitApi onAttributionCompleteWithResult:nil error:error];
         return;
     }
 
@@ -194,7 +194,7 @@ NSString * const MPKitButtonErrorMessageKey = @"mParticle-Button Error";
 
     if (!requestData && error) {
         NSError *error = [self errorWithMessage:[NSString stringWithFormat:@"JSON serialization of request data failed: %@", error]];
-        [_kitApi onDeeplinkCompleteWithInfo:nil error:error];
+        [_kitApi onAttributionCompleteWithResult:nil error:error];
         return;
     }
 
@@ -222,22 +222,26 @@ NSString * const MPKitButtonErrorMessageKey = @"mParticle-Button Error";
 
                   if ([object[@"action"] length]) {
                       linkInfo = @{ BTNDeferredDeepLinkURLKey: object[@"action"], MPKitButtonAttributionResultKey: object[@"action"] };
-                      [_kitApi onDeeplinkCompleteWithInfo:linkInfo error:nil];
+                      
+                      MPAttributionResult *attributionResult = [[MPAttributionResult alloc] init];
+                      attributionResult.linkInfo = linkInfo;
+
+                      [_kitApi onAttributionCompleteWithResult:attributionResult error:nil];
                   }
                   else {
-                      NSError *deeplinkError = [self errorWithMessage:@"Response dictionary value for key 'action' was empty or missing"];
-                      [_kitApi onDeeplinkCompleteWithInfo:nil error:deeplinkError];
+                      NSError *attributionError = [self errorWithMessage:@"Response dictionary value for key 'action' was empty or missing"];
+                      [_kitApi onAttributionCompleteWithResult:nil error:attributionError];
                       return;
                   }
               } else {
-                  NSError *deeplinkError = [self errorWithMessage:@"Not a valid response"];
-                  [_kitApi onDeeplinkCompleteWithInfo:nil error:deeplinkError];
+                  NSError *attributionError = [self errorWithMessage:@"Not a valid response"];
+                  [_kitApi onAttributionCompleteWithResult:nil error:attributionError];
                   return;
               }
               
           } else {
-              NSError *deeplinkError = [self errorWithMessage:[NSString stringWithFormat:@"Data task failed with error: %@", error]];
-              [_kitApi onDeeplinkCompleteWithInfo:nil error:deeplinkError];
+              NSError *attributionError = [self errorWithMessage:[NSString stringWithFormat:@"Data task failed with error: %@", error]];
+              [_kitApi onAttributionCompleteWithResult:nil error:attributionError];
               return;
           }
           
@@ -301,7 +305,7 @@ NSString * const MPKitButtonErrorMessageKey = @"mParticle-Button Error";
             }
         }
     }
-    [self checkForDeeplink];
+    [self checkForAttribution];
 }
 
 
