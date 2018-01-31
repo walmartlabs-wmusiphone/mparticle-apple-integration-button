@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
     s.name             = "mParticle-Button"
-    s.version          = "6.16.0"
+    s.version          = "6.16.1"
     s.summary          = "Button integration for mParticle"
 
     s.description      = <<-DESC
