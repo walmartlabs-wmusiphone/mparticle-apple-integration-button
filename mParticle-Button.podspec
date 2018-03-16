@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
     s.name             = "mParticle-Button"
-    s.version          = "7.1.5"
+    s.version          = "7.2.0"
     s.summary          = "Button integration for mParticle"
 
     s.description      = <<-DESC
@@ -15,5 +15,5 @@ Pod::Spec.new do |s|
 
     s.ios.deployment_target = "8.0"
     s.ios.source_files      = 'mParticle-Button/*.{h,m,mm}'
-    s.ios.dependency 'mParticle-Apple-SDK/mParticle', '~> 7.1.0'
+    s.ios.dependency 'mParticle-Apple-SDK/mParticle', '~> 7.2.0'
 end
