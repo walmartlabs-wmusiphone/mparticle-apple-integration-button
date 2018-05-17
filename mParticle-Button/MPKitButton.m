@@ -30,6 +30,9 @@ static NSString * const BTNLinkFetchStatusDefaultsKey = @"com.usebutton.link.fet
 NSString * const MPKitButtonAttributionResultKey = @"mParticle-Button Attribution Result";
 NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
 
+NSString * const MPKitButtonErrorDomain = @"com.mparticle.kits.button";
+NSString * const MPKitButtonErrorMessageKey = @"mParticle-Button Error";
+
 
 #pragma mark - MPIButton
 @interface MPIButton()
@@ -85,6 +88,8 @@ NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
 
 @implementation MPKitButton
 
+@synthesize kitApi = _kitApi;
+
 + (NSNumber *)kitCode {
     return @1022;
 }
@@ -92,20 +97,20 @@ NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
 
 + (void)load {
     MPKitRegister *kitRegister = [[MPKitRegister alloc] initWithName:@"Button"
-                                                           className:NSStringFromClass(self)
-                                                    startImmediately:YES];
+                                                           className:NSStringFromClass(self)];
     [MParticle registerExtension:kitRegister];
 }
 
 
 #pragma mark MPKitInstanceProtocol methods
 
-- (nonnull instancetype)initWithConfiguration:(nonnull NSDictionary *)configuration startImmediately:(BOOL)startImmediately {
-    self = [super init];
+- (MPKitExecStatus *)didFinishLaunchingWithConfiguration:(NSDictionary *)configuration {
+    MPKitExecStatus *execStatus = nil;
 
     _applicationId = [configuration[@"application_id"] copy];
-    if (!self || !_applicationId) {
-        return nil;
+    if (!_applicationId) {
+        execStatus = [[MPKitExecStatus alloc] initWithSDKCode:[[self class] kitCode] returnCode:MPKitReturnCodeRequirementsNotMet];
+        return execStatus;
     }
 
     _fileManager  = [NSFileManager defaultManager];
@@ -117,7 +122,7 @@ NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
     _IFAManager   = [ASIdentifierManager sharedManager];
 
     _configuration = configuration;
-    _started       = startImmediately;
+    _started       = YES;
 
     dispatch_async(dispatch_get_main_queue(), ^{
         NSDictionary *userInfo = @{ mParticleKitInstanceKey: [[self class] kitCode] };
@@ -127,21 +132,27 @@ NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
                                                           userInfo:userInfo];
     });
 
-    return self;
+    execStatus = [[MPKitExecStatus alloc] initWithSDKCode:[[self class] kitCode] returnCode:MPKitReturnCodeSuccess];
+    return execStatus;
 }
 
 - (id)providerKitInstance {
     return [self started] ? self.button : nil;
 }
 
-- (nonnull MPKitExecStatus *)checkForDeferredDeepLinkWithCompletionHandler:(void(^ _Nonnull)(NSDictionary * _Nullable linkInfo, NSError * _Nullable error))completionHandler {
+- (NSError *)errorWithMessage:(NSString *)message {
+    NSError *error = [NSError errorWithDomain:MPKitButtonErrorDomain code:0 userInfo:@{MPKitButtonErrorMessageKey: message}];
+    return error;
+}
 
+- (void)checkForAttribution {
     BOOL isNewInstall = [self isNewInstall];
     BOOL didFetchLink = [self.userDefaults boolForKey:BTNLinkFetchStatusDefaultsKey];
 
     if (!isNewInstall || didFetchLink || !self.applicationId.length) {
-        return [[MPKitExecStatus alloc] initWithSDKCode:[[self class] kitCode]
-                                             returnCode:MPKitReturnCodeRequirementsNotMet];
+        NSError *error = [self errorWithMessage:@"Requirements not met"];
+        [_kitApi onAttributionCompleteWithResult:nil error:error];
+        return;
     }
 
     [self.userDefaults setBool:YES forKey:BTNLinkFetchStatusDefaultsKey];
@@ -182,8 +193,9 @@ NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
     }
 
     if (!requestData && error) {
-        return [[MPKitExecStatus alloc] initWithSDKCode:[[self class] kitCode]
-                                             returnCode:MPKitReturnCodeFail];
+        NSError *error = [self errorWithMessage:[NSString stringWithFormat:@"JSON serialization of request data failed: %@", error]];
+        [_kitApi onAttributionCompleteWithResult:nil error:error];
+        return;
     }
 
     request.HTTPBody = requestData;
@@ -210,19 +222,30 @@ NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
 
                   if ([object[@"action"] length]) {
                       linkInfo = @{ BTNDeferredDeepLinkURLKey: object[@"action"], MPKitButtonAttributionResultKey: object[@"action"] };
+                      
+                      MPAttributionResult *attributionResult = [[MPAttributionResult alloc] init];
+                      attributionResult.linkInfo = linkInfo;
+
+                      [_kitApi onAttributionCompleteWithResult:attributionResult error:nil];
                   }
+                  else {
+                      NSError *attributionError = [self errorWithMessage:@"Response dictionary value for key 'action' was empty or missing"];
+                      [_kitApi onAttributionCompleteWithResult:nil error:attributionError];
+                      return;
+                  }
+              } else {
+                  NSError *attributionError = [self errorWithMessage:@"Not a valid response"];
+                  [_kitApi onAttributionCompleteWithResult:nil error:attributionError];
+                  return;
               }
+              
+          } else {
+              NSError *attributionError = [self errorWithMessage:[NSString stringWithFormat:@"Data task failed with error: %@", error]];
+              [_kitApi onAttributionCompleteWithResult:nil error:attributionError];
+              return;
           }
-
-          if (completionHandler) {
-              dispatch_async(dispatch_get_main_queue(), ^{
-                  completionHandler(linkInfo, nil);
-              });
-          }
+          
     }] resume];
-
-    return [[MPKitExecStatus alloc] initWithSDKCode:[[self class] kitCode]
-                                         returnCode:MPKitReturnCodeSuccess];
 }
 
 
@@ -282,6 +305,7 @@ NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
             }
         }
     }
+    [self checkForAttribution];
 }
 
 
