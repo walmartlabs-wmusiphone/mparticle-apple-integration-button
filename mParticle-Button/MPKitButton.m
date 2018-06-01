@@ -32,6 +32,7 @@ NSString * const BTNDeferredDeepLinkURLKey = @"BTNDeferredDeepLinkURLKey";
 
 NSString * const MPKitButtonErrorDomain = @"com.mparticle.kits.button";
 NSString * const MPKitButtonErrorMessageKey = @"mParticle-Button Error";
+NSString * const MPKitButtonIntegrationAttribution = @"com.usebutton.source_token";
 
 
 #pragma mark - MPIButton
@@ -57,6 +58,8 @@ NSString * const MPKitButtonErrorMessageKey = @"mParticle-Button Error";
 
 - (void)setReferrerToken:(NSString *)buttonReferrerToken {
     if (buttonReferrerToken) {
+        NSDictionary<NSString *, NSString *> *integrationAttributes = @{MPKitButtonIntegrationAttribution:buttonReferrerToken};
+        [[MParticle sharedInstance] setIntegrationAttributes:integrationAttributes forKit:[[self class] kitCode]];
         [self.userDefaults setObject:buttonReferrerToken forKey:BTNReferrerTokenDefaultsKey];
     }
     else {
@@ -133,6 +136,7 @@ NSString * const MPKitButtonErrorMessageKey = @"mParticle-Button Error";
     });
 
     execStatus = [[MPKitExecStatus alloc] initWithSDKCode:[[self class] kitCode] returnCode:MPKitReturnCodeSuccess];
+    [self checkForAttribution];
     return execStatus;
 }
 
