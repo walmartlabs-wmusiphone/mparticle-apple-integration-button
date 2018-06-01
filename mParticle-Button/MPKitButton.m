@@ -133,10 +133,11 @@ NSString * const MPKitButtonIntegrationAttribution = @"com.usebutton.source_toke
         [[NSNotificationCenter defaultCenter] postNotificationName:mParticleKitDidBecomeActiveNotification
                                                             object:nil
                                                           userInfo:userInfo];
+        [self checkForAttribution];
     });
 
     execStatus = [[MPKitExecStatus alloc] initWithSDKCode:[[self class] kitCode] returnCode:MPKitReturnCodeSuccess];
-    [self checkForAttribution];
+    
     return execStatus;
 }
 
@@ -309,7 +310,10 @@ NSString * const MPKitButtonIntegrationAttribution = @"com.usebutton.source_toke
             }
         }
     }
-    [self checkForAttribution];
+    dispatch_async(dispatch_get_main_queue, ^{
+        [self checkForAttribution];
+    });
+    
 }
 
 
