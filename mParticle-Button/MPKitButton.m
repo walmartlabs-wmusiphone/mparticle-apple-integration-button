@@ -231,22 +231,22 @@ NSString * const MPKitButtonIntegrationAttribution = @"com.usebutton.source_toke
                       MPAttributionResult *attributionResult = [[MPAttributionResult alloc] init];
                       attributionResult.linkInfo = linkInfo;
 
-                      [_kitApi onAttributionCompleteWithResult:attributionResult error:nil];
+                      [self->_kitApi onAttributionCompleteWithResult:attributionResult error:nil];
                   }
                   else {
                       NSError *attributionError = [self errorWithMessage:@"Response dictionary value for key 'action' was empty or missing"];
-                      [_kitApi onAttributionCompleteWithResult:nil error:attributionError];
+                      [self->_kitApi onAttributionCompleteWithResult:nil error:attributionError];
                       return;
                   }
               } else {
                   NSError *attributionError = [self errorWithMessage:@"Not a valid response"];
-                  [_kitApi onAttributionCompleteWithResult:nil error:attributionError];
+                  [self->_kitApi onAttributionCompleteWithResult:nil error:attributionError];
                   return;
               }
               
           } else {
               NSError *attributionError = [self errorWithMessage:[NSString stringWithFormat:@"Data task failed with error: %@", error]];
-              [_kitApi onAttributionCompleteWithResult:nil error:attributionError];
+              [self->_kitApi onAttributionCompleteWithResult:nil error:attributionError];
               return;
           }
           
@@ -310,7 +310,7 @@ NSString * const MPKitButtonIntegrationAttribution = @"com.usebutton.source_toke
             }
         }
     }
-    dispatch_async(dispatch_get_main_queue, ^{
+    dispatch_async(dispatch_get_main_queue(), ^{
         [self checkForAttribution];
     });
     
