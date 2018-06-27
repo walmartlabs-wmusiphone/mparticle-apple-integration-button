@@ -1,1 +1,1 @@
-github "walmartlabs-wmusiphone/mparticle-apple-sdk" ~> 7.3
+github "mparticle/mparticle-apple-sdk" ~> 7.4.0
