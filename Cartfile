@@ -1,1 +1,4 @@
-github "mparticle/mparticle-apple-sdk" ~> 7.5.0
+# mparticle-apple-sdk is present in and linked by ios-walmart repo.
+# Carthage dependency isn't required.
+
+# github "mparticle/mparticle-apple-sdk" ~> 7.5.0
