@@ -13,7 +13,7 @@ This repository contains the [Button](https://www.usebutton.com) integration for
     OR
 
     ```
-    github 'mparticle-integrations/mparticle-apple-integration-button' ~> 7.0
+    github "mparticle-integrations/mparticle-apple-integration-button" ~> 7.0
     ```
 
 2. Follow the mParticle iOS SDK [quick-start](https://github.com/mParticle/mparticle-apple-sdk), then rebuild and launch your app, and verify that you see `"Included kits: { Button }"` in your Xcode console 
