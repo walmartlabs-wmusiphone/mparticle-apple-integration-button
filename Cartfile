@@ -1,4 +1,2 @@
-# mparticle-apple-sdk is present in and linked by ios-walmart repo.
-# Carthage dependency isn't required.
-
-# github "mparticle/mparticle-apple-sdk" ~> 7.8.0
+github "mparticle/mparticle-apple-sdk" ~> 7.0
+github "button/button-merchant-ios" ~> 1.0
